@@ -1,51 +1,44 @@
-# Platform Infra
+# ⚙️ Platform Infra
 
-Infraestructura como código para desplegar Traefik + apps estáticas en un droplet de DigitalOcean utilizando Terraform, GitHub Actions y GHCR.
+Infraestructura como código para desplegar Traefik + apps estáticas en un droplet de DigitalOcean usando Terraform, GitHub Actions y GHCR.
 
-## Estructura
-
+## 🗂️ Estructura
 ```
 platform-infra/
-+-- README.md
-+-- .gitignore
-+-- terraform/
-     +-- main.tf
-     +-- variables.tf
-     +-- droplet.tf
-     +-- firewall.tf
-     +-- ssh_key.tf
-     +-- outputs.tf
-     +-- bootstrap/
-+-- terraform.tfvars.example
-+-- .github/workflows/
-    +-- infra.yml           # plan/apply de Terraform
-    +-- deploy-compose.yml  # actualiza el docker-compose en el droplet
+├── README.md
+├── .gitignore
+├── terraform/
+│   ├── main.tf / variables.tf / outputs.tf
+│   ├── droplet.tf / firewall.tf / ssh_key.tf
+│   └── bootstrap/
+├── terraform.tfvars.example
+└── .github/workflows/
+    ├── infra.yml            # plan/apply de Terraform
+    └── deploy-compose.yml   # sincroniza el docker-compose en el droplet
 ```
 
-## Prerrequisitos
-- Terraform = 1.5
-- Cuenta de DigitalOcean con token API (`do_token` / `DO_TOKEN`).
-- Terraform Cloud (o backend remoto) configurado en `terraform/main.tf`.
-- Clave SSH registrada en DigitalOcean (`ssh_key_name`).
+## ✅ Prerrequisitos
+- Terraform >= 1.5 y backend remoto configurado en `terraform/main.tf` (Terraform Cloud).
+- Cuenta de DigitalOcean con token API (`do_token` / secret `DO_TOKEN`) y clave SSH registrada (`ssh_key_name`).
 - Token API de Cloudflare con permisos `Zone:DNS:Edit` (`CF_DNS_API_TOKEN`).
-- Secrets en GitHub (para los workflows): `DO_TOKEN`, `DO_SSH_USER`, `DO_SSH_KEY`, `DO_HOST`, `TF_API_TOKEN`, `REGISTRY_USERNAME`, `REGISTRY_TOKEN`.
+- Secrets en GitHub (workflows): `DO_TOKEN`, `DO_HOST`, `DO_SSH_USER`, `DO_SSH_KEY`, `TF_API_TOKEN`, `REGISTRY_USERNAME`, `REGISTRY_TOKEN`, `CF_DNS_API_TOKEN`.
 
-## Uso local
-1. Copia `terraform.tfvars.example` a `terraform.tfvars` y rellena las variables.
-2. Desde `terraform/` ejecuta:
+## 🛠️ Uso local
+1. Copia `terraform.tfvars.example` a `terraform.tfvars` y rellena valores.
+2. Dentro de `terraform/` ejecuta:
    ```bash
    terraform init
    terraform plan
    terraform apply
    ```
-3. Toma nota del `droplet_ip` mostrado en los outputs.
+3. Guarda el `droplet_ip` que muestran los outputs.
 
-## GitHub Actions (infra.yml)
-- `plan`: se ejecuta en cada PR (fmt + init + validate + plan).
-- `apply`: al hacer push a `main` repite fmt/init/validate/plan y aplica con `terraform apply -auto-approve`.
+## 🤖 GitHub Actions (infra.yml)
+- **plan**: en cada PR corre `fmt`, `init`, `validate` y `plan`.
+- **apply**: en `main` repite los pasos anteriores y ejecuta `terraform apply -auto-approve`.
 
-## Bootstrap
-Tras `terraform apply` copia el script al droplet y ejecútalo pasando el token de Cloudflare para el challenge DNS:
+## 🚀 Bootstrap del droplet
+Después de `terraform apply`, sube y ejecuta el script pasando el token de Cloudflare (challenge DNS):
 ```bash
 scp -i <ruta/id_digitalocean> scripts/bootstrap.sh root@<droplet_ip>:/tmp/
 ssh -i <ruta/id_digitalocean> root@<droplet_ip>
@@ -56,22 +49,28 @@ TRAEFIK_EMAIL=tu-correo \
 PORTFOLIO_HOST=itzkevindev.tech \
 /tmp/bootstrap.sh
 ```
-El script instala Docker 24.0.9, genera `/opt/platform/.env.*`, levanta Traefik + portfolio (con DNS challenge) y deja todo listo para `docker compose --project-name platform_portfolio up -d`.
+El script instala Docker 24.0.9, prepara `/opt/platform`, crea `.env.platform`, levanta Traefik + portfolio (DNS challenge) y deja listo `docker compose --project-name platform_portfolio up -d`.
 
-## Flujo completo tras un `terraform destroy`
-1. **Recrear la infra** (`terraform apply`).
-2. **Ejecutar el bootstrap** como se describe arriba.
-3. **(Opcional) Validar**:
+## 🔁 Flujo tras un `terraform destroy`
+1. **Recrear la infraestructura**: `terraform apply`.
+2. **Ejecutar el bootstrap** usando el comando anterior.
+3. **Verificar servicios**:
    ```bash
    cd /opt/platform
    docker compose --project-name platform_portfolio up -d
    docker compose --project-name platform_portfolio ps
    docker logs platform_portfolio-traefik-1 --tail 50
+   curl -k -H "Host: itzkevindev.tech" https://<droplet_ip>
    ```
-   También puedes verificar el origen con `curl -k -H "Host: itzkevindev.tech" https://<droplet_ip>`.
-4. **DNS/Cloudflare**: deja los registros A/CNAME en proxy naranja y el modo SSL en **Full**. El challenge DNS se encarga del certificado.
+4. **DNS / Cloudflare**: registros A y CNAME en proxy naranja, modo SSL = **Full** (Traefik renueva certificados vía DNS challenge).
 5. **Pipelines automáticos**:
-   - `iTzPortfolio/.github/workflows/node.js.yml`: construye/pushea la imagen en GHCR y ejecuta `docker compose pull/up portfolio`.
-   - `platform-infra/.github/workflows/deploy-compose.yml`: copia `runtime/docker-compose.yml` al droplet y ejecuta `docker compose pull/up` cuando cambias el stack.
+   - `iTzPortfolio/.github/workflows/node.js.yml`: build de Angular, push a GHCR y `docker compose pull/up portfolio` vía SSH.
+   - `platform-infra/.github/workflows/deploy-compose.yml`: despliega cambios del `runtime/docker-compose.yml` (Traefik + servicios compartidos).
 
-Con esto todo el flujo (Terraform ? bootstrap ? Traefik + apps ? actualizaciones del compose) queda automatizado. Solo necesitas repetir los pasos anteriores si destruyes el droplet o cambias de dominio.
+Con esto el ciclo queda automatizado: Terraform crea infra, el bootstrap deja el entorno listo y las pipelines mantienen Traefik + apps actualizadas. Solo repite el flujo después de destruir el droplet o al cambiar de dominio.
+
+---
+
+<p align="center">
+  <img src="IconoITzKEvin.png" alt="iTzKevin logo" width="120">
+</p>
