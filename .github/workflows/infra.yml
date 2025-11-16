@@ -73,12 +73,26 @@ jobs:
       - name: Terraform validate
         run: terraform -chdir=terraform validate
 
-      - name: Terraform plan
-        run: terraform -chdir=terraform plan -out=tfplan -input=false
+      - name: Terraform plan (detailed exit code)
+        id: plan
+        run: |
+          set +e
+          terraform -chdir=terraform plan -out=tfplan -input=false -detailed-exitcode
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+            exit 0
+          elif [ $EXIT_CODE -eq 2 ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            exit $EXIT_CODE
+          fi
         env:
           DIGITALOCEAN_TOKEN: ${{ secrets.DO_TOKEN }}
 
       - name: Terraform apply
+        if: steps.plan.outputs.changes == 'true'
         run: terraform -chdir=terraform apply -input=false -auto-approve tfplan
         env:
           DIGITALOCEAN_TOKEN: ${{ secrets.DO_TOKEN }}
