@@ -1,0 +1,47 @@
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=${TRAEFIK_ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.delayBeforeCheck=30
+      - --api.dashboard=true
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - ${TRAEFIK_NETWORK:-reverse-proxy}
+    env_file:
+      - .env.platform
+    environment:
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION}
+    restart: unless-stopped
+
+  portfolio:
+    image: ${PORTFOLIO_IMAGE:-ghcr.io/itzkevinpg/itzportfolio:latest}
+    env_file:
+      - .env.portfolio
+      - .env.platform
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.portfolio.rule=Host(${PORTFOLIO_HOST}) || Host(www.${PORTFOLIO_HOST})
+      - traefik.http.routers.portfolio.entrypoints=websecure
+      - traefik.http.routers.portfolio.tls.certresolver=letsencrypt
+      - traefik.http.services.portfolio.loadbalancer.server.port=${PORTFOLIO_INTERNAL_PORT:-8080}
+    networks:
+      - ${TRAEFIK_NETWORK:-reverse-proxy}
+    restart: unless-stopped
+
+networks:
+  ${TRAEFIK_NETWORK:-reverse-proxy}:
+    external: true

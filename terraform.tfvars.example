@@ -1,0 +1,12 @@
+# Copia este archivo a terraform.tfvars y ajusta los valores
+
+do_token             = "dop_v1_xxx"
+ssh_key_name         = "DO_SSH_KEY" # nombre registrado en DigitalOcean
+# ssh_public_key     = "ssh-ed25519 AAAA...."
+ssh_public_key_path  = "~/.ssh/id_rsa.pub"
+droplet_name         = "platform-droplet"
+region               = "sfo3"
+droplet_size         = "s-1vcpu-1gb"
+project_tags         = ["platform", "portfolio"]
+firewall_name        = "platform-firewall"
+# droplet_user_data = file("./cloud-init.yaml")

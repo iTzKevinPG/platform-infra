@@ -1,0 +1,39 @@
+name: Deploy Platform Compose
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - runtime/**
+      - scripts/bootstrap.sh
+      - .github/workflows/deploy-compose.yml
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy compose file to droplet
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_SSH_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          source: runtime/docker-compose.yml
+          target: /tmp
+
+      - name: Reload docker compose stack
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_SSH_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            sudo mv /tmp/runtime/docker-compose.yml /opt/platform/docker-compose.yml
+            sudo chown root:root /opt/platform/docker-compose.yml
+            cd /opt/platform
+            docker compose --project-name platform_portfolio pull
+            docker compose --project-name platform_portfolio up -d
