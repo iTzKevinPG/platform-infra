@@ -21,7 +21,9 @@ platform-infra/
 - Terraform >= 1.5 y backend remoto configurado en `terraform/main.tf` (Terraform Cloud).
 - Cuenta de DigitalOcean con token API (`do_token` / secret `DO_TOKEN`) y clave SSH registrada (`ssh_key_name`).
 - Token API de Cloudflare con permisos `Zone:DNS:Edit` (`CF_DNS_API_TOKEN`).
-- Secrets en GitHub (workflows): `DO_TOKEN`, `DO_HOST`, `DO_SSH_USER`, `DO_SSH_KEY`, `TF_API_TOKEN`, `REGISTRY_USERNAME`, `REGISTRY_TOKEN`, `CF_DNS_API_TOKEN`.
+- Secrets/variables en GitHub Actions:
+  - **Secrets**: `DO_TOKEN`, `DO_HOST`, `DO_SSH_USER`, `DO_SSH_KEY`, `TF_API_TOKEN`, `REGISTRY_USERNAME`, `REGISTRY_TOKEN`, `CF_DNS_API_TOKEN`, `TRAEFIK_EMAIL`.
+  - **Variables**: `PORTFOLIO_HOST`, `PORTFOLIO_IMAGE`, `PORTFOLIO_INTERNAL_PORT`, `DOCKER_API_VERSION`.
 
 ## 🛠️ Uso local
 1. Copia `terraform.tfvars.example` a `terraform.tfvars` y rellena valores.
@@ -65,7 +67,7 @@ El script instala Docker 24.0.9, prepara `/opt/platform`, crea `.env.platform`, 
 4. **DNS / Cloudflare**: registros A y CNAME en proxy naranja, modo SSL = **Full** (Traefik renueva certificados vía DNS challenge).
 5. **Pipelines automáticos**:
    - `iTzPortfolio/.github/workflows/node.js.yml`: build de Angular, push a GHCR y `docker compose pull/up portfolio` vía SSH.
-   - `platform-infra/.github/workflows/deploy-compose.yml`: despliega cambios del `runtime/docker-compose.yml` (Traefik + servicios compartidos).
+   - `platform-infra/.github/workflows/deploy-compose.yml`: despliega cambios del `runtime/docker-compose.yml`, recrea automáticamente `/opt/platform/.env.platform` usando los secrets/variables anteriores y ejecuta `docker compose --env-file .env.platform pull/up`.
 
 Con esto el ciclo queda automatizado: Terraform crea infra, el bootstrap deja el entorno listo y las pipelines mantienen Traefik + apps actualizadas. Solo repite el flujo después de destruir el droplet o al cambiar de dominio.
 

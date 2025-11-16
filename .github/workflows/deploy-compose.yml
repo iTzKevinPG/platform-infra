@@ -32,8 +32,22 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           script: |
             set -euo pipefail
+            sudo mkdir -p /opt/platform
             sudo mv /tmp/runtime/docker-compose.yml /opt/platform/docker-compose.yml
             sudo chown root:root /opt/platform/docker-compose.yml
+            cat <<'EOF' | sudo tee /opt/platform/.env.platform >/dev/null
+            TRAEFIK_EMAIL=${{ secrets.TRAEFIK_EMAIL }}
+            CF_DNS_API_TOKEN=${{ secrets.CF_DNS_API_TOKEN }}
+            PORTFOLIO_HOST=${{ vars.PORTFOLIO_HOST }}
+            PORTFOLIO_IMAGE=${{ vars.PORTFOLIO_IMAGE }}
+            PORTFOLIO_INTERNAL_PORT=${{ vars.PORTFOLIO_INTERNAL_PORT }}
+            DOCKER_API_VERSION=${{ vars.DOCKER_API_VERSION }}
+            EOF
+            sudo chown root:root /opt/platform/.env.platform
+            sudo chmod 600 /opt/platform/.env.platform
+            if ! docker network inspect reverse-proxy >/dev/null 2>&1; then
+              docker network create reverse-proxy
+            fi
             cd /opt/platform
-            docker compose --project-name platform_portfolio pull
-            docker compose --project-name platform_portfolio up -d
+            docker compose --env-file .env.platform --project-name platform_portfolio pull
+            docker compose --env-file .env.platform --project-name platform_portfolio up -d
