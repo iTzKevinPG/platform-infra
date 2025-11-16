@@ -1,19 +1,21 @@
 name: Deploy Platform Compose
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - runtime/**
-      - scripts/bootstrap.sh
-      - .github/workflows/deploy-compose.yml
+  workflow_run:
+    workflows:
+      - Terraform Infrastructure
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Copy compose file to droplet
         uses: appleboy/scp-action@v0.1.7
@@ -36,7 +38,7 @@ jobs:
             sudo mv /tmp/runtime/docker-compose.yml /opt/platform/docker-compose.yml
             sudo chown root:root /opt/platform/docker-compose.yml
             cat <<'EOF' | sudo tee /opt/platform/.env.platform >/dev/null
-            TRAEFIK_EMAIL=${{ secrets.TRAEFIK_EMAIL }}
+            TRAEFIK_ACME_EMAIL=${{ secrets.TRAEFIK_EMAIL }}
             CF_DNS_API_TOKEN=${{ secrets.CF_DNS_API_TOKEN }}
             PORTFOLIO_HOST=${{ vars.PORTFOLIO_HOST }}
             PORTFOLIO_IMAGE=${{ vars.PORTFOLIO_IMAGE }}

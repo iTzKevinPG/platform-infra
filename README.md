@@ -67,7 +67,8 @@ El script instala Docker 24.0.9, prepara `/opt/platform`, crea `.env.platform`, 
 4. **DNS / Cloudflare**: registros A y CNAME en proxy naranja, modo SSL = **Full** (Traefik renueva certificados vía DNS challenge).
 5. **Pipelines automáticos**:
    - `iTzPortfolio/.github/workflows/node.js.yml`: build de Angular, push a GHCR y `docker compose pull/up portfolio` vía SSH.
-   - `platform-infra/.github/workflows/deploy-compose.yml`: despliega cambios del `runtime/docker-compose.yml`, recrea automáticamente `/opt/platform/.env.platform` usando los secrets/variables anteriores y ejecuta `docker compose --env-file .env.platform pull/up`.
+   - `platform-infra/.github/workflows/infra.yml`: se ejecuta en cada push/PR relevante (infra o runtime) y aplica Terraform cuando `main` cambia.
+   - `platform-infra/.github/workflows/deploy-compose.yml`: se dispara automáticamente cuando `Terraform Infrastructure` termina correctamente (o vía `workflow_dispatch`), recrea `/opt/platform/.env.platform` con los secrets/variables, garantiza la red `reverse-proxy` y ejecuta `docker compose --env-file .env.platform pull/up`. De esta forma siempre hay un check de runtime inmediatamente después del plan/apply de Terraform.
 
 Con esto el ciclo queda automatizado: Terraform crea infra, el bootstrap deja el entorno listo y las pipelines mantienen Traefik + apps actualizadas. Solo repite el flujo después de destruir el droplet o al cambiar de dominio.
 
