@@ -19,7 +19,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
     networks:
-      - ${TRAEFIK_NETWORK:-reverse-proxy}
+      - reverse-proxy
     env_file:
       - .env.platform
     environment:
@@ -39,9 +39,10 @@ services:
       - traefik.http.routers.portfolio.tls.certresolver=letsencrypt
       - traefik.http.services.portfolio.loadbalancer.server.port=${PORTFOLIO_INTERNAL_PORT:-8080}
     networks:
-      - ${TRAEFIK_NETWORK:-reverse-proxy}
+      - reverse-proxy
     restart: unless-stopped
 
 networks:
-  ${TRAEFIK_NETWORK:-reverse-proxy}:
+  reverse-proxy:
     external: true
+    name: ${TRAEFIK_NETWORK:-reverse-proxy}
