@@ -1,26 +1,6 @@
 name: Terraform Infrastructure
 
 on:
-  pull_request:
-    branches: [ main ]
-    paths:
-      - "terraform/**"
-      - "terraform.tfvars.example"
-      - ".github/workflows/infra.yml"
-      - ".github/workflows/deploy-compose.yml"
-      - "runtime/**"
-      - "scripts/bootstrap.sh"
-      - "README.md"
-  push:
-    branches: [ main ]
-    paths:
-      - "terraform/**"
-      - "terraform.tfvars.example"
-      - ".github/workflows/infra.yml"
-      - ".github/workflows/deploy-compose.yml"
-      - "runtime/**"
-      - "scripts/bootstrap.sh"
-      - "README.md"
   workflow_dispatch:
 
 jobs:
