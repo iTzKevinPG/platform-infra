@@ -1,11 +1,6 @@
 name: Deploy Platform Compose
 
 on:
-  workflow_run:
-    workflows:
-      - Terraform Infrastructure
-    types:
-      - completed
   workflow_dispatch:
 
 jobs:
