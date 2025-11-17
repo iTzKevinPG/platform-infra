@@ -34,7 +34,7 @@ services:
       - .env.platform
     labels:
       - traefik.enable=true
-      - traefik.http.routers.portfolio.rule=Host(${PORTFOLIO_HOST}) || Host(www.${PORTFOLIO_HOST})
+      - traefik.http.routers.portfolio.rule=Host(`${PORTFOLIO_HOST}`) || Host(`www.${PORTFOLIO_HOST}`)
       - traefik.http.routers.portfolio.entrypoints=websecure
       - traefik.http.routers.portfolio.tls.certresolver=letsencrypt
       - traefik.http.services.portfolio.loadbalancer.server.port=${PORTFOLIO_INTERNAL_PORT:-8080}
