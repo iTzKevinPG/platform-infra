@@ -45,4 +45,4 @@ services:
 networks:
   reverse-proxy:
     external: true
-    name: ${TRAEFIK_NETWORK:-reverse-proxy}
+    name: ${TRAEFIK_NETWORK:-reverse-proxy} 
